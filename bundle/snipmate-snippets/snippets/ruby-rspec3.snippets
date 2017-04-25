@@ -1,0 +1,111 @@
+#Equivalence
+
+snippet eeq
+	expect(${1:actual}).to eq(${2:expected})
+snippet eeql
+	expect(${1:actual}).to eql(${2:expected})
+
+#Identity
+
+snippet ebe
+	expect(${1:actual}).to be(${2:expected})
+snippet eequ
+	expect(${1:actual}).to equal(${2:expected})
+
+#Comparisons
+
+snippet egt
+	expect(${1:actual}).to be > ${2:expected}
+snippet ege
+	expect(${1:actual}).to be >= ${2:expected}
+snippet elt
+	expect(${1:actual}).to be < ${2:expected}
+snippet ele
+	expect(${1:actual}).to be <= ${2:expected}
+snippet ewi
+	expect(${1:actual}).to be_within(${2:delta}).of(${3:expected})
+
+#Regular expressions
+
+snippet emat
+	expect(${1:actual}).to match(/${2:expected}/)
+
+#Types/classes
+
+snippet ebi
+	expect(${1:actual}).to be_an_instance_of(${2:expected})
+snippet eba
+	expect(${1:actual}).to be_a(${2:expected})
+snippet eban
+	expect(${1:actual}).to be_an(${2:expected})
+snippet ebk
+	expect(${1:actual}).to be_a_kind_of(${2:expected})
+
+#Truthiness
+
+snippet ebty
+	expect(${1:actual}).to be_truthy
+snippet ebtu
+	expect(${1:actual}).to be true
+snippet ebfy
+	expect(${1:actual}).to be_falsy
+snippet ebfa
+	expect(${1:actual}).to be false
+snippet ebn
+	expect(${1:actual}).to be_nil
+
+#Expecting errors
+
+snippet ere
+	expect { ${1:actual} }.to raise_error
+snippet erec
+	expect { ${1:actual} }.to raise_error(${2:ErrorClass})
+snippet erem
+	expect { ${1:actual} }.to raise_error("${2:message}")
+snippet erecm
+	expect { ${1:actual} }.to raise_error(${2:ErrorClass}, "${3:message}")
+
+#Expecting throws
+
+snippet eth
+	expect { ${1:actual} }.to throw_symbol
+snippet eths
+	expect { ${1:actual} }.to throw_symbol(:${2:symbol})
+snippet ethsv
+	expect { ${1:actual} }.to throw_symbol(:${2:symbol}, "${3:value}")
+
+#Yielding
+
+snippet ey
+	expect { |b| ${1:5.tap(&b)} }.to yield_control
+snippet eywna
+	expect { |b| ${1:5.tap(&b)} }.to yield_with_no_args
+snippet eywa
+	expect { |b| ${1:5.tap(&b)} }.to yield_with_args(${2:value|Class|RegExp})
+snippet eysa
+	expect { |b| ${1:[1, 2, 3].each(&b)} }.to yield_successive_args(${2:1, 2, 3})
+
+#Predicate matchers
+
+snippet ebe?
+	expect(${1:actual}).to be_${2}
+snippet ehas?
+	expect(${1:actual}).to have_${2}(${3:arg})
+
+#Ranges (Ruby >= 1.9 only)
+
+snippet ecov
+	expect(${1:range}).to cover(${2})
+
+#Collection membership
+
+snippet einc
+	expect(${1:actual}).to include(${2:expected})
+snippet esttw
+	expect(${1:actual}).to start_with(${2:expected})
+snippet eendw
+	expect(${1:actual}).to end_with(${2:expected})
+snippet econex
+	expect(${1:actual}).to contain_exactly(${2:individual, items})
+snippet ema
+	expect(${1:actual}).to match_array(${2:expected_array})
