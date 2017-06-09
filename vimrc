@@ -65,7 +65,6 @@ syntax on                   " syntax highlighting
 "location
 let mapleader = ','
 
-nnoremap <silent> <C-f> :NERDTreeFind<CR>
 map <C-q> :q<CR>
 map <C-x> :qa<CR>
 set wrap
@@ -147,22 +146,9 @@ let g:snipMate.scope_aliases['ruby'] = 'ruby,ruby-rails,ruby-rspec,ruby-rspec3,r
 imap <C-J> <Plug>snipMateTrigger
 smap <C-J> <Plug>snipMateTrigger
 
-" NerdTree {
-map <C-e> :NERDTreeToggle<CR>:NERDTreeMirror<CR>
-map <leader>e :NERDTree<CR>
-nmap <leader>nt :NERDTreeFind<CR>
-
 nmap <leader>b :Gblame<CR>
 nmap <leader>f :Buffers<CR>
 nmap <leader>m :Marks<CR>
-
-let NERDTreeShowBookmarks=1
-let NERDTreeIgnore=['\.pyc', '\~$', '\.swo$', '\.swp$', '\.git', '\.hg', '\.svn', '\.bzr', '\.DS_Store']
-let NERDTreeChDirMode=0
-let NERDTreeQuitOnOpen=0
-let NERDTreeShowHidden=1
-let NERDTreeKeepTreeInNewTab=1
-" }
 
 " ctrlp {
 let g:ctrlp_working_path_mode = 'ra'
@@ -298,3 +284,31 @@ if !exists("g:ycm_semantic_triggers")
 endif
 let g:ycm_semantic_triggers['typescript'] = ['.']
 let g:tsuquyomi_disable_default_mappings = 1
+
+"------------------------------------------------------------------------------
+" NERDTree
+"------------------------------------------------------------------------------
+
+" General properties
+let NERDTreeDirArrows=1
+let NERDTreeMinimalUI=1
+let NERDTreeIgnore=['\.pyc', '\~$', '\.swo$', '\.swp$', '\.git', '\.hg', '\.svn', '\.bzr', '\.DS_Store']
+let NERDTreeWinSize = 35
+let NERDTreeShowBookmarks=1
+let NERDTreeShowHidden=1
+
+" Make sure that when NT root is changed, Vim's pwd is also updated
+let NERDTreeChDirMode = 2
+let NERDTreeShowLineNumbers = 1
+let NERDTreeAutoCenter = 1
+
+let NERDTreeQuitOnOpen=1
+
+" Open NERDTree on startup, when no file has been specified
+autocmd VimEnter * if !argc() | NERDTree | endif
+
+" Locate file in hierarchy quickly
+map <C-f> :NERDTreeFind<CR>
+
+" Toogle on/off
+map <C-e> :NERDTreeToggle<CR>:NERDTreeMirror<CR>
