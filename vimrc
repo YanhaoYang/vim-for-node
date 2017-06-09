@@ -37,6 +37,10 @@ Plugin 'elzr/vim-json'
 
 Plugin 'YanhaoYang/neodark.vim'
 
+Plugin 'leafgarland/typescript-vim'
+Plugin 'Quramy/tsuquyomi'
+Plugin 'Valloric/YouCompleteMe'
+
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -288,3 +292,8 @@ nmap <leader>y :.w! ~/.vbuf<cr>
 
 "paste the contents of the buffer file
 nmap <leader>p :r ~/.vbuf<cr>
+
+if !exists("g:ycm_semantic_triggers")
+  let g:ycm_semantic_triggers = {}
+endif
+let g:ycm_semantic_triggers['typescript'] = ['.']
