@@ -117,7 +117,7 @@ set foldmethod=indent
 set foldcolumn=2
 set foldlevel=1
 set list
-set listchars=tab:,.,trail:.,extends:#,nbsp:. " Highlight problematic whitespace
+set listchars=tab:\ \ ,trail:.,extends:#,nbsp:. " Highlight problematic whitespace
 
 set wildmenu                    " show list instead of just completing
 set wildmode=list:longest,full  " command <Tab> completion, list matches, then longest common part, then all.
@@ -210,7 +210,7 @@ let g:rubycomplete_rails = 1
 
 set autoindent                  " indent at the same level of the previous line
 set shiftwidth=2                " use indents of 4 spaces
-set expandtab                   " tabs are spaces, not tabs
+set noexpandtab                   " tabs are spaces, not tabs
 set tabstop=2                   " an indentation every four columns
 set softtabstop=2               " let backspace delete indent
 set pastetoggle=<F8>       " pastetoggle (sane indentation on pastes)
