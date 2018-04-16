@@ -1,57 +1,9 @@
-set nocompatible              " be iMproved, required
-filetype off                  " required
-
-" set the runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
-
-" let Vundle manage Vundle, required
-Plugin 'VundleVim/Vundle.vim'
-
-Plugin 'tomtom/tlib_vim'
-Plugin 'MarcWeber/vim-addon-mw-utils'
-
-Plugin 'scrooloose/nerdtree'
-Plugin 'Yggdroot/indentLine'
-
-Plugin 'kien/ctrlp.vim'
-Plugin 'Lokaltog/vim-easymotion'
-
-Plugin 'ervandew/supertab'
-Plugin 'garbas/vim-snipmate'
-Plugin 'YanhaoYang/snipmate-snippets'
-
-Plugin 'scrooloose/nerdcommenter'
-Plugin 'scrooloose/syntastic'
-Plugin 'tpope/vim-fugitive'
-
-Plugin 'greyblake/vim-preview'
-Plugin 'godlygeek/tabular'
-
-Plugin 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plugin 'junegunn/fzf.vim'
+source ~/.vim/plugins
 
 let g:vim_json_syntax_conceal = 0
 
-Plugin 'elzr/vim-json'
-
-Plugin 'YanhaoYang/neodark.vim'
-
-Plugin 'SirVer/ultisnips'
-Plugin 'leafgarland/typescript-vim'
-Plugin 'Quramy/tsuquyomi'
-Plugin 'Valloric/YouCompleteMe'
-
-" All of your Plugins must be added before the following line
-call vundle#end()            " required
-filetype plugin indent on    " required
-
 set encoding=utf-8
 set t_Co=256
-
-let g:neodark#use_256color = 1
-let g:neodark#terminal_transparent = 1
-colorscheme neodark
 
 " Source support_function.vim to support snipmate-snippets.
 if filereadable(expand("~/.vim/bundle/snipmate-snippets/snippets/support_functions.vim"))
@@ -61,6 +13,9 @@ endif
 filetype on
 filetype plugin indent on   " Automatically detect file types.
 syntax on                   " syntax highlighting
+
+let g:seoul256_background = 233
+colo seoul256
 
 "The default leader is '\', but many people prefer ',' as it's in a standard
 "location
@@ -117,7 +72,7 @@ set foldmethod=indent
 set foldcolumn=2
 set foldlevel=1
 set list
-set listchars=tab:\ \ ,trail:.,extends:#,nbsp:. " Highlight problematic whitespace
+set listchars=tab:\|\ ,trail:.,extends:#,nbsp:. " Highlight problematic whitespace
 
 set wildmenu                    " show list instead of just completing
 set wildmode=list:longest,full  " command <Tab> completion, list matches, then longest common part, then all.

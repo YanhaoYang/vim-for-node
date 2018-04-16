@@ -44,6 +44,8 @@ const (
 	Resize
 	Mouse
 	DoubleClick
+	LeftClick
+	RightClick
 
 	BTab
 	BSpace
@@ -59,6 +61,8 @@ const (
 	Home
 	End
 
+	SUp
+	SDown
 	SLeft
 	SRight
 
@@ -75,10 +79,16 @@ const (
 	F11
 	F12
 
-	AltEnter
+	Change
+
 	AltSpace
 	AltSlash
 	AltBS
+
+	AltUp
+	AltDown
+	AltLeft
+	AltRight
 
 	Alt0
 )
@@ -90,7 +100,9 @@ const ( // Reset iota
 	AltD
 	AltE
 	AltF
-	AltZ = AltA + 'z' - 'a'
+	AltZ     = AltA + 'z' - 'a'
+	CtrlAltA = AltZ + 1
+	CtrlAltM = CtrlAltA + 'm' - 'a'
 )
 
 const (
@@ -130,7 +142,7 @@ const (
 type ColorPair struct {
 	fg Color
 	bg Color
-	id int16
+	id int
 }
 
 func HexToColor(rrggbb string) Color {
@@ -152,12 +164,8 @@ func (p ColorPair) Bg() Color {
 	return p.bg
 }
 
-func (p ColorPair) key() int {
-	return (int(p.Fg()) << 8) + int(p.Bg())
-}
-
 func (p ColorPair) is24() bool {
-	return p.Fg().is24() || p.Bg().is24()
+	return p.fg.is24() || p.bg.is24()
 }
 
 type ColorTheme struct {
@@ -176,10 +184,6 @@ type ColorTheme struct {
 	Border       Color
 }
 
-func (t *ColorTheme) HasBg() bool {
-	return t.Bg != colDefault
-}
-
 type Event struct {
 	Type       int
 	Char       rune
@@ -190,6 +194,7 @@ type MouseEvent struct {
 	Y      int
 	X      int
 	S      int
+	Left   bool
 	Down   bool
 	Double bool
 	Mod    bool
@@ -205,8 +210,8 @@ const (
 
 type Renderer interface {
 	Init()
-	Pause()
-	Resume() bool
+	Pause(clear bool)
+	Resume(clear bool)
 	Clear()
 	RefreshWindows(windows []Window)
 	Refresh()
@@ -217,7 +222,6 @@ type Renderer interface {
 	MaxX() int
 	MaxY() int
 	DoesAutoWrap() bool
-	IsOptimized() bool
 
 	NewWindow(top int, left int, width int, height int, borderStyle BorderStyle) Window
 }
@@ -233,6 +237,7 @@ type Window interface {
 	Close()
 
 	X() int
+	Y() int
 	Enclose(y int, x int) bool
 
 	Move(y int, x int)
@@ -267,7 +272,6 @@ var (
 	Dark256   *ColorTheme
 	Light256  *ColorTheme
 
-	ColDefault      ColorPair
 	ColNormal       ColorPair
 	ColPrompt       ColorPair
 	ColMatch        ColorPair
@@ -279,7 +283,6 @@ var (
 	ColSelected     ColorPair
 	ColHeader       ColorPair
 	ColBorder       ColorPair
-	ColUser         ColorPair
 )
 
 func EmptyTheme() *ColorTheme {
@@ -383,33 +386,36 @@ func initTheme(theme *ColorTheme, baseTheme *ColorTheme, forceBlack bool) {
 }
 
 func initPalette(theme *ColorTheme) {
-	ColDefault = ColorPair{colDefault, colDefault, 0}
-	if theme != nil {
-		ColNormal = ColorPair{theme.Fg, theme.Bg, 1}
-		ColPrompt = ColorPair{theme.Prompt, theme.Bg, 2}
-		ColMatch = ColorPair{theme.Match, theme.Bg, 3}
-		ColCurrent = ColorPair{theme.Current, theme.DarkBg, 4}
-		ColCurrentMatch = ColorPair{theme.CurrentMatch, theme.DarkBg, 5}
-		ColSpinner = ColorPair{theme.Spinner, theme.Bg, 6}
-		ColInfo = ColorPair{theme.Info, theme.Bg, 7}
-		ColCursor = ColorPair{theme.Cursor, theme.DarkBg, 8}
-		ColSelected = ColorPair{theme.Selected, theme.DarkBg, 9}
-		ColHeader = ColorPair{theme.Header, theme.Bg, 10}
-		ColBorder = ColorPair{theme.Border, theme.Bg, 11}
-	} else {
-		ColNormal = ColorPair{colDefault, colDefault, 1}
-		ColPrompt = ColorPair{colDefault, colDefault, 2}
-		ColMatch = ColorPair{colDefault, colDefault, 3}
-		ColCurrent = ColorPair{colDefault, colDefault, 4}
-		ColCurrentMatch = ColorPair{colDefault, colDefault, 5}
-		ColSpinner = ColorPair{colDefault, colDefault, 6}
-		ColInfo = ColorPair{colDefault, colDefault, 7}
-		ColCursor = ColorPair{colDefault, colDefault, 8}
-		ColSelected = ColorPair{colDefault, colDefault, 9}
-		ColHeader = ColorPair{colDefault, colDefault, 10}
-		ColBorder = ColorPair{colDefault, colDefault, 11}
+	idx := 0
+	pair := func(fg, bg Color) ColorPair {
+		idx++
+		return ColorPair{fg, bg, idx}
 	}
-	ColUser = ColorPair{colDefault, colDefault, 12}
+	if theme != nil {
+		ColNormal = pair(theme.Fg, theme.Bg)
+		ColPrompt = pair(theme.Prompt, theme.Bg)
+		ColMatch = pair(theme.Match, theme.Bg)
+		ColCurrent = pair(theme.Current, theme.DarkBg)
+		ColCurrentMatch = pair(theme.CurrentMatch, theme.DarkBg)
+		ColSpinner = pair(theme.Spinner, theme.Bg)
+		ColInfo = pair(theme.Info, theme.Bg)
+		ColCursor = pair(theme.Cursor, theme.DarkBg)
+		ColSelected = pair(theme.Selected, theme.DarkBg)
+		ColHeader = pair(theme.Header, theme.Bg)
+		ColBorder = pair(theme.Border, theme.Bg)
+	} else {
+		ColNormal = pair(colDefault, colDefault)
+		ColPrompt = pair(colDefault, colDefault)
+		ColMatch = pair(colDefault, colDefault)
+		ColCurrent = pair(colDefault, colDefault)
+		ColCurrentMatch = pair(colDefault, colDefault)
+		ColSpinner = pair(colDefault, colDefault)
+		ColInfo = pair(colDefault, colDefault)
+		ColCursor = pair(colDefault, colDefault)
+		ColSelected = pair(colDefault, colDefault)
+		ColHeader = pair(colDefault, colDefault)
+		ColBorder = pair(colDefault, colDefault)
+	}
 }
 
 func attrFor(color ColorPair, attr Attr) Attr {

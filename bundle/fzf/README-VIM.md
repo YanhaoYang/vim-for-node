@@ -37,7 +37,7 @@ Note that the environment variables `FZF_DEFAULT_COMMAND` and
 - `g:fzf_action`
     - Customizable extra key bindings for opening selected files in different ways
 - `g:fzf_layout`
-    - Determines the size and position of fzf window (tmux pane or Neovim split)
+    - Determines the size and position of fzf window
 - `g:fzf_colors`
     - Customizes fzf colors to match the current color scheme
 - `g:fzf_history_dir`
@@ -55,11 +55,24 @@ let g:fzf_action = {
   \ 'ctrl-x': 'split',
   \ 'ctrl-v': 'vsplit' }
 
+" An action can be a reference to a function that processes selected lines
+function! s:build_quickfix_list(lines)
+  call setqflist(map(copy(a:lines), '{ "filename": v:val }'))
+  copen
+  cc
+endfunction
+
+let g:fzf_action = {
+  \ 'ctrl-q': function('s:build_quickfix_list'),
+  \ 'ctrl-t': 'tab split',
+  \ 'ctrl-x': 'split',
+  \ 'ctrl-v': 'vsplit' }
+
 " Default fzf layout
 " - down / up / left / right
 let g:fzf_layout = { 'down': '~40%' }
 
-" In Neovim, you can set up fzf window using a Vim command
+" You can set up fzf window using a Vim command (Neovim or latest Vim 8 required)
 let g:fzf_layout = { 'window': 'enew' }
 let g:fzf_layout = { 'window': '-tabnew' }
 let g:fzf_layout = { 'window': '10split enew' }
@@ -73,6 +86,7 @@ let g:fzf_colors =
   \ 'bg+':     ['bg', 'CursorLine', 'CursorColumn'],
   \ 'hl+':     ['fg', 'Statement'],
   \ 'info':    ['fg', 'PreProc'],
+  \ 'border':  ['fg', 'Ignore'],
   \ 'prompt':  ['fg', 'Conditional'],
   \ 'pointer': ['fg', 'Exception'],
   \ 'marker':  ['fg', 'Keyword'],
@@ -99,12 +113,21 @@ following options.
 | `sink`                     | string        | Vim command to handle the selected item (e.g. `e`, `tabe`)       |
 | `sink`                     | funcref       | Reference to function to process each selected item              |
 | `sink*`                    | funcref       | Similar to `sink`, but takes the list of output lines at once    |
-| `options`                  | string        | Options to fzf                                                   |
+| `options`                  | string/list   | Options to fzf                                                   |
 | `dir`                      | string        | Working directory                                                |
 | `up`/`down`/`left`/`right` | number/string | Use tmux pane with the given size (e.g. `20`, `50%`)             |
-| `window` (*Neovim only*)   | string        | Command to open fzf window (e.g. `vertical aboveleft 30new`)     |
+| `window` (Vim 8 / Neovim)  | string        | Command to open fzf window (e.g. `vertical aboveleft 30new`)     |
 | `launcher`                 | string        | External terminal emulator to start fzf with (GVim only)         |
 | `launcher`                 | funcref       | Function for generating `launcher` string (GVim only)            |
+
+`options` entry can be either a string or a list. For simple cases, string
+should suffice, but prefer to use list type if you're concerned about escaping
+issues on different platforms.
+
+```vim
+call fzf#run({'options': '--reverse --prompt "C:\\Program Files\\"'})
+call fzf#run({'options': ['--reverse', '--prompt', 'C:\Program Files\']})
+```
 
 `fzf#wrap`
 ----------
@@ -119,11 +142,38 @@ command! -bang MyStuff
   \ call fzf#run(fzf#wrap('my-stuff', {'dir': '~/my-stuff'}, <bang>0))
 ```
 
+fzf inside terminal buffer
+--------------------------
+
+The latest versions of Vim and Neovim include builtin terminal emulator
+(`:terminal`) and fzf will start in a terminal buffer in the following cases:
+
+- On Neovim
+- On GVim
+- On Terminal Vim with the non-default layout
+    - `call fzf#run({'left': '30%'})` or `let g:fzf_layout = {'left': '30%'}`
+
+### Hide statusline
+
+When fzf starts in a terminal buffer, you may want to hide the statusline of
+the containing buffer.
+
+```vim
+autocmd! FileType fzf
+autocmd  FileType fzf set laststatus=0 noshowmode noruler
+  \| autocmd BufLeave <buffer> set laststatus=2 showmode ruler
+```
+
 GVim
 ----
 
-In GVim, you need an external terminal emulator to start fzf with. `xterm`
-command is used by default, but you can customize it with `g:fzf_launcher`.
+With the latest version of GVim, fzf will start inside the builtin terminal
+emulator of Vim. Please note that this terminal feature of Vim is still young
+and unstable and you may run into some issues.
+
+If you have an older version of GVim, you need an external terminal emulator
+to start fzf with. `xterm` command is used by default, but you can customize
+it with `g:fzf_launcher`.
 
 ```vim
 " This is the default. %s is replaced with fzf command

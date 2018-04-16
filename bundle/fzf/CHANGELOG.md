@@ -1,6 +1,94 @@
 CHANGELOG
 =========
 
+0.17.3
+------
+- `$LINES` and `$COLUMNS` are exported to preview command so that the command
+  knows the exact size of the preview window.
+- Better error messages when the default command or `$FZF_DEFAULT_COMMAND`
+  fails.
+- Reverted #1061 to avoid having duplicate entries in the list when find
+  command detected a file system loop (#1120). The default command now
+  requires that find supports `-fstype` option.
+- fzf now distinguishes mouse left click and right click (#1130)
+    - Right click is now bound to `toggle` action by default
+    - `--bind` understands `left-click` and `right-click`
+- Added `replace-query` action (#1137)
+    - Replaces query string with the current selection
+- Added `accept-non-empty` action (#1162)
+    - Same as accept, except that it prevents fzf from exiting without any
+      selection
+
+0.17.1
+------
+
+- Fixed custom background color of preview window (#1046)
+- Fixed background color issues of Windows binary
+- Fixed Windows binary to execute command using cmd.exe with no parsing and
+  escaping (#1072)
+- Added support for `window` layout on Vim 8 using Vim 8 terminal (#1055)
+
+0.17.0-2
+--------
+
+A maintenance release for auxiliary scripts. fzf binaries are not updated.
+
+- Experimental support for the builtin terminal of Vim 8
+    - fzf can now run inside GVim
+- Updated Vim plugin to better handle `&shell` issue on fish
+- Fixed a bug of fzf-tmux where invalid output is generated
+- Fixed fzf-tmux to work even when `tput` does not work
+
+0.17.0
+------
+- Performance optimization
+- One can match literal spaces in extended-search mode with a space prepended
+  by a backslash.
+- `--expect` is now additive and can be specified multiple times.
+
+0.16.11
+-------
+- Performance optimization
+- Fixed missing preview update
+
+0.16.10
+-------
+- Fixed invalid handling of ANSI colors in preview window
+- Further improved `--ansi` performance
+
+0.16.9
+------
+- Memory and performance optimization
+    - Around 20% performance improvement for general use cases
+    - Up to 5x faster processing of `--ansi`
+    - Up to 50% reduction of memory usage
+- Bug fixes and usability improvements
+    - Fixed handling of bracketed paste mode
+    - [ERROR] on info line when the default command failed
+    - More efficient rendering of preview window
+    - `--no-clear` updated for repetitive relaunching scenarios
+
+0.16.8
+------
+- New `change` event and `top` action for `--bind`
+    - `fzf --bind change:top`
+        - Move cursor to the top result whenever the query string is changed
+    - `fzf --bind 'ctrl-w:unix-word-rubout+top,ctrl-u:unix-line-discard+top'`
+        - `top` combined with `unix-word-rubout` and `unix-line-discard`
+- Fixed inconsistent tiebreak scores when `--nth` is used
+- Proper display of tab characters in `--prompt`
+- Fixed not to `--cycle` on page-up/page-down to prevent overshoot
+- Git revision in `--version` output
+- Basic support for Cygwin environment
+- Many fixes in Vim plugin on Windows/Cygwin (thanks to @janlazo)
+
+0.16.7
+------
+- Added support for `ctrl-alt-[a-z]` key chords
+- CTRL-Z (SIGSTOP) now works with fzf
+- fzf will export `$FZF_PREVIEW_WINDOW` so that the scripts can use it
+- Bug fixes and improvements in Vim plugin and shell extensions
+
 0.16.6
 ------
 - Minor bug fixes and improvements

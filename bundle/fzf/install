@@ -2,12 +2,13 @@
 
 set -u
 
-version=0.16.6
+version=0.17.3
 auto_completion=
 key_bindings=
 update_config=2
 binary_arch=
 allow_legacy=
+shells="bash zsh fish"
 
 help() {
   cat << EOF
@@ -20,6 +21,10 @@ usage: $0 [OPTIONS]
     --[no-]key-bindings  Enable/disable key bindings (CTRL-T, CTRL-R, ALT-C)
     --[no-]completion    Enable/disable fuzzy completion (bash & zsh)
     --[no-]update-rc     Whether or not to update shell configuration files
+
+    --no-bash            Do not set up bash configuration
+    --no-zsh             Do not set up zsh configuration
+    --no-fish            Do not set up fish configuration
 
     --32                 Download 32-bit binary
     --64                 Download 64-bit binary
@@ -47,6 +52,9 @@ for opt in "$@"; do
     --32)              binary_arch=386   ;;
     --64)              binary_arch=amd64 ;;
     --bin)             ;;
+    --no-bash)         shells=${shells/bash/} ;;
+    --no-zsh)          shells=${shells/zsh/} ;;
+    --no-fish)         shells=${shells/fish/} ;;
     *)
       echo "unknown option: $opt"
       help
@@ -59,20 +67,21 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 fzf_base="$(pwd)"
 
 ask() {
-  # If stdin is a tty, we are "interactive".
-  # non-interactive shell: wait for a linefeed
-  #     interactive shell: continue after a single keypress
-  read_n=$([ -t 0 ] && echo "-n 1")
-
-  read -p "$1 ([y]/n) " $read_n -r
-  echo
-  [[ $REPLY =~ ^[Nn]$ ]]
+  while true; do
+    read -p "$1 ([y]/n) " -r
+    REPLY=${REPLY:-"y"}
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      return 1
+    elif [[ $REPLY =~ ^[Nn]$ ]]; then
+      return 0
+    fi
+  done
 }
 
 check_binary() {
   echo -n "  - Checking fzf executable ... "
   local output
-  output=$("$fzf_base"/bin/fzf --version 2>&1)
+  output=$("$fzf_base"/bin/fzf --version 2>&1 | awk '{print $1}')
   if [ $? -ne 0 ]; then
     echo "Error: $output"
     binary_error="Invalid binary"
@@ -99,11 +108,23 @@ link_fzf_in_path() {
 }
 
 try_curl() {
-  command -v curl > /dev/null && curl -fL $1 | tar -xzf -
+  command -v curl > /dev/null &&
+  if [[ $1 =~ tgz$ ]]; then
+    curl -fL $1 | tar -xzf -
+  else
+    local temp=${TMPDIR:-/tmp}/fzf.zip
+    curl -fLo "$temp" $1 && unzip -o "$temp" && rm -f "$temp"
+  fi
 }
 
 try_wget() {
-  command -v wget > /dev/null && wget -O - $1 | tar -xzf -
+  command -v wget > /dev/null &&
+  if [[ $1 =~ tgz$ ]]; then
+    wget -O - $1 | tar -xzf -
+  else
+    local temp=${TMPDIR:-/tmp}/fzf.zip
+    wget -O "$temp" $1 && unzip -o "$temp" && rm -f "$temp"
+  fi
 }
 
 download() {
@@ -123,8 +144,8 @@ download() {
 
   local url
   [[ "$version" =~ alpha ]] &&
-    url=https://github.com/junegunn/fzf-bin/releases/download/alpha/${1}.tgz ||
-    url=https://github.com/junegunn/fzf-bin/releases/download/$version/${1}.tgz
+    url=https://github.com/junegunn/fzf-bin/releases/download/alpha/${1} ||
+    url=https://github.com/junegunn/fzf-bin/releases/download/$version/${1}
   set -o pipefail
   if ! (try_curl $url || try_wget $url); then
     set +o pipefail
@@ -146,18 +167,22 @@ archi=$(uname -sm)
 binary_available=1
 binary_error=""
 case "$archi" in
-  Darwin\ *64)   download fzf-$version-darwin_${binary_arch:-amd64}  ;;
-  Darwin\ *86)   download fzf-$version-darwin_${binary_arch:-386}    ;;
-  Linux\ *64)    download fzf-$version-linux_${binary_arch:-amd64}   ;;
-  Linux\ *86)    download fzf-$version-linux_${binary_arch:-386}     ;;
-  Linux\ armv5*) download fzf-$version-linux_${binary_arch:-arm5}    ;;
-  Linux\ armv6*) download fzf-$version-linux_${binary_arch:-arm6}    ;;
-  Linux\ armv7*) download fzf-$version-linux_${binary_arch:-arm7}    ;;
-  Linux\ armv8*) download fzf-$version-linux_${binary_arch:-arm8}    ;;
-  FreeBSD\ *64)  download fzf-$version-freebsd_${binary_arch:-amd64} ;;
-  FreeBSD\ *86)  download fzf-$version-freebsd_${binary_arch:-386}   ;;
-  OpenBSD\ *64)  download fzf-$version-openbsd_${binary_arch:-amd64} ;;
-  OpenBSD\ *86)  download fzf-$version-openbsd_${binary_arch:-386}   ;;
+  Darwin\ *64)   download fzf-$version-darwin_${binary_arch:-amd64}.tgz  ;;
+  Darwin\ *86)   download fzf-$version-darwin_${binary_arch:-386}.tgz    ;;
+  Linux\ armv5*) download fzf-$version-linux_${binary_arch:-arm5}.tgz    ;;
+  Linux\ armv6*) download fzf-$version-linux_${binary_arch:-arm6}.tgz    ;;
+  Linux\ armv7*) download fzf-$version-linux_${binary_arch:-arm7}.tgz    ;;
+  Linux\ armv8*) download fzf-$version-linux_${binary_arch:-arm8}.tgz    ;;
+  Linux\ aarch64*) download fzf-$version-linux_${binary_arch:-arm8}.tgz  ;;
+  Linux\ *64)    download fzf-$version-linux_${binary_arch:-amd64}.tgz   ;;
+  Linux\ *86)    download fzf-$version-linux_${binary_arch:-386}.tgz     ;;
+  FreeBSD\ *64)  download fzf-$version-freebsd_${binary_arch:-amd64}.tgz ;;
+  FreeBSD\ *86)  download fzf-$version-freebsd_${binary_arch:-386}.tgz   ;;
+  OpenBSD\ *64)  download fzf-$version-openbsd_${binary_arch:-amd64}.tgz ;;
+  OpenBSD\ *86)  download fzf-$version-openbsd_${binary_arch:-386}.tgz   ;;
+  CYGWIN*\ *64)  download fzf-$version-windows_${binary_arch:-amd64}.zip ;;
+  MINGW*\ *86)   download fzf-$version-windows_${binary_arch:-386}.zip   ;;
+  MINGW*\ *64)   download fzf-$version-windows_${binary_arch:-amd64}.zip ;;
   *)             binary_available=0 binary_error=1 ;;
 esac
 
@@ -169,12 +194,12 @@ if [ -n "$binary_error" ]; then
     echo "  - $binary_error !!!"
   fi
   if command -v go > /dev/null; then
-    echo -n "Building binary (go get -u github.com/junegunn/fzf/src/fzf) ... "
+    echo -n "Building binary (go get -u github.com/junegunn/fzf) ... "
     if [ -z "${GOPATH-}" ]; then
       export GOPATH="${TMPDIR:-/tmp}/fzf-gopath"
       mkdir -p "$GOPATH"
     fi
-    if go get -u github.com/junegunn/fzf/src/fzf; then
+    if go get -u github.com/junegunn/fzf; then
       echo "OK"
       cp "$GOPATH/bin/fzf" "$fzf_base/bin/"
     else
@@ -189,6 +214,17 @@ fi
 
 [[ "$*" =~ "--bin" ]] && exit 0
 
+for s in $shells; do
+  if ! command -v "$s" > /dev/null; then
+    shells=${shells/$s/}
+  fi
+done
+
+if [[ ${#shells} -lt 3 ]]; then
+  echo "No shell configuration to be updated."
+  exit 0
+fi
+
 # Auto-completion
 if [ -z "$auto_completion" ]; then
   ask "Do you want to enable fuzzy auto-completion?"
@@ -202,9 +238,8 @@ if [ -z "$key_bindings" ]; then
 fi
 
 echo
-has_zsh=$(command -v zsh > /dev/null && echo 1 || echo 0)
-shells=$([ $has_zsh -eq 1 ] && echo "bash zsh" || echo "bash")
 for shell in $shells; do
+  [[ "$shell" = fish ]] && continue
   echo -n "Generate ~/.fzf.$shell ... "
   src=~/.fzf.${shell}
 
@@ -238,11 +273,10 @@ EOF
 done
 
 # fish
-has_fish=$(command -v fish > /dev/null && echo 1 || echo 0)
-if [ $has_fish -eq 1 ]; then
+if [[ "$shells" =~ fish ]]; then
   echo -n "Update fish_user_paths ... "
   fish << EOF
-  echo \$fish_user_paths | grep $fzf_base/bin > /dev/null
+  echo \$fish_user_paths | \grep $fzf_base/bin > /dev/null
   or set --universal fish_user_paths \$fish_user_paths $fzf_base/bin
 EOF
   [ $? -eq 0 ] && echo "OK" || echo "Failed"
@@ -273,20 +307,22 @@ append_line() {
   line="$2"
   file="$3"
   pat="${4:-}"
+  lno=""
 
   echo "Update $file:"
   echo "  - $line"
-  [ -f "$file" ] || touch "$file"
-  if [ $# -lt 4 ]; then
-    lno=$(\grep -nF "$line" "$file" | sed 's/:.*//' | tr '\n' ' ')
-  else
-    lno=$(\grep -nF "$pat" "$file" | sed 's/:.*//' | tr '\n' ' ')
+  if [ -f "$file" ]; then
+    if [ $# -lt 4 ]; then
+      lno=$(\grep -nF "$line" "$file" | sed 's/:.*//' | tr '\n' ' ')
+    else
+      lno=$(\grep -nF "$pat" "$file" | sed 's/:.*//' | tr '\n' ' ')
+    fi
   fi
   if [ -n "$lno" ]; then
     echo "    - Already exists: line #$lno"
   else
     if [ $update -eq 1 ]; then
-      echo >> "$file"
+      [ -f "$file" ] && echo >> "$file"
       echo "$line" >> "$file"
       echo "    + Added"
     else
@@ -297,6 +333,17 @@ append_line() {
   set +e
 }
 
+create_file() {
+  local file="$1"
+  shift
+  echo "Create $file:"
+  for line in "$@"; do
+    echo "    $line"
+    echo "$line" >> "$file"
+  done
+  echo
+}
+
 if [ $update_config -eq 2 ]; then
   echo
   ask "Do you want to update your shell configuration files?"
@@ -304,23 +351,30 @@ if [ $update_config -eq 2 ]; then
 fi
 echo
 for shell in $shells; do
+  [[ "$shell" = fish ]] && continue
   [ $shell = zsh ] && dest=${ZDOTDIR:-~}/.zshrc || dest=~/.bashrc
   append_line $update_config "[ -f ~/.fzf.${shell} ] && source ~/.fzf.${shell}" "$dest" "~/.fzf.${shell}"
 done
 
-if [ $key_bindings -eq 1 ] && [ $has_fish -eq 1 ]; then
+if [ $key_bindings -eq 1 ] && [[ "$shells" =~ fish ]]; then
   bind_file=~/.config/fish/functions/fish_user_key_bindings.fish
-  append_line $update_config "fzf_key_bindings" "$bind_file"
+  if [ ! -e "$bind_file" ]; then
+    create_file "$bind_file" \
+      'function fish_user_key_bindings' \
+      '  fzf_key_bindings' \
+      'end'
+  else
+    append_line $update_config "fzf_key_bindings" "$bind_file"
+  fi
 fi
 
 if [ $update_config -eq 1 ]; then
   echo 'Finished. Restart your shell or reload config file.'
-  echo '   source ~/.bashrc  # bash'
-  [ $has_zsh  -eq 1 ] && echo "   source ${ZDOTDIR:-~}/.zshrc   # zsh"
-  [ $has_fish -eq 1 ] && [ $key_bindings -eq 1 ] && echo '   fzf_key_bindings  # fish'
+  [[ "$shells" =~ bash ]] && echo '   source ~/.bashrc  # bash'
+  [[ "$shells" =~ zsh ]]  && echo "   source ${ZDOTDIR:-~}/.zshrc   # zsh"
+  [[ "$shells" =~ fish ]] && [ $key_bindings -eq 1 ] && echo '   fzf_key_bindings  # fish'
   echo
   echo 'Use uninstall script to remove fzf.'
   echo
 fi
 echo 'For more information, see: https://github.com/junegunn/fzf'
-

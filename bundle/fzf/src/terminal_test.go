@@ -10,7 +10,7 @@ import (
 func newItem(str string) *Item {
 	bytes := []byte(str)
 	trimmed, _, _ := extractColor(str, nil, nil)
-	return &Item{origText: &bytes, text: util.RunesToChars([]rune(trimmed))}
+	return &Item{origText: &bytes, text: util.ToChars([]byte(trimmed))}
 }
 
 func TestReplacePlaceholder(t *testing.T) {
@@ -20,6 +20,9 @@ func TestReplacePlaceholder(t *testing.T) {
 		newItem("foo'bar \x1b[31mbaz\x1b[m"),
 		newItem("foo'bar \x1b[31mbaz\x1b[m"),
 		newItem("FOO'BAR \x1b[31mBAZ\x1b[m")}
+
+	delim := "'"
+	var regex *regexp.Regexp
 
 	var result string
 	check := func(expected string) {
@@ -72,6 +75,31 @@ func TestReplacePlaceholder(t *testing.T) {
 	result = replacePlaceholder("echo {1}/{2}/{-1}/{-2}/{..}/{n.t}/\\{}/\\{1}/\\{q}/{3}", true, Delimiter{}, true, "query", items2)
 	check("echo 'foo'\\''bar' 'FOO'\\''BAR'/'baz' 'BAZ'/'baz' 'BAZ'/'foo'\\''bar' 'FOO'\\''BAR'/'foo'\\''bar baz' 'FOO'\\''BAR BAZ'/{n.t}/{}/{1}/{q}/'' ''")
 
+	// Whitespace preserving flag with "'" delimiter
+	result = replacePlaceholder("echo {s1}", true, Delimiter{str: &delim}, false, "query", items1)
+	check("echo '  foo'")
+
+	result = replacePlaceholder("echo {s2}", true, Delimiter{str: &delim}, false, "query", items1)
+	check("echo 'bar baz'")
+
+	result = replacePlaceholder("echo {s}", true, Delimiter{str: &delim}, false, "query", items1)
+	check("echo '  foo'\\''bar baz'")
+
+	result = replacePlaceholder("echo {s..}", true, Delimiter{str: &delim}, false, "query", items1)
+	check("echo '  foo'\\''bar baz'")
+
+	// Whitespace preserving flag with regex delimiter
+	regex = regexp.MustCompile("\\w+")
+
+	result = replacePlaceholder("echo {s1}", true, Delimiter{regex: regex}, false, "query", items1)
+	check("echo '  '")
+
+	result = replacePlaceholder("echo {s2}", true, Delimiter{regex: regex}, false, "query", items1)
+	check("echo ''\\'''")
+
+	result = replacePlaceholder("echo {s3}", true, Delimiter{regex: regex}, false, "query", items1)
+	check("echo ' '")
+
 	// No match
 	result = replacePlaceholder("echo {}/{+}", true, Delimiter{}, false, "query", []*Item{nil, nil})
 	check("echo /")
@@ -81,13 +109,31 @@ func TestReplacePlaceholder(t *testing.T) {
 	check("echo /'  foo'\\''bar baz'")
 
 	// String delimiter
-	delim := "'"
 	result = replacePlaceholder("echo {}/{1}/{2}", true, Delimiter{str: &delim}, false, "query", items1)
 	check("echo '  foo'\\''bar baz'/'foo'/'bar baz'")
 
 	// Regex delimiter
-	regex := regexp.MustCompile("[oa]+")
+	regex = regexp.MustCompile("[oa]+")
 	// foo'bar baz
 	result = replacePlaceholder("echo {}/{1}/{3}/{2..3}", true, Delimiter{regex: regex}, false, "query", items1)
 	check("echo '  foo'\\''bar baz'/'f'/'r b'/''\\''bar b'")
+}
+
+func TestQuoteEntryCmd(t *testing.T) {
+	tests := map[string]string{
+		`"`:                       `^"\^"^"`,
+		`\`:                       `^"\\^"`,
+		`\"`:                      `^"\\\^"^"`,
+		`"\\\"`:                   `^"\^"\\\\\\\^"^"`,
+		`&|<>()@^%!`:              `^"^&^|^<^>^(^)^@^^^%^!^"`,
+		`%USERPROFILE%`:           `^"^%USERPROFILE^%^"`,
+		`C:\Program Files (x86)\`: `^"C:\\Program Files ^(x86^)\\^"`,
+	}
+
+	for input, expected := range tests {
+		escaped := quoteEntryCmd(input)
+		if escaped != expected {
+			t.Errorf("Input: %s, expected: %s, actual %s", input, expected, escaped)
+		}
+	}
 }

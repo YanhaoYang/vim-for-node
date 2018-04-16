@@ -1,6 +1,7 @@
 package fzf
 
 import (
+	"os"
 	"time"
 
 	"github.com/junegunn/fzf/src/util"
@@ -8,14 +9,17 @@ import (
 
 const (
 	// Current version
-	version = "0.16.6"
+	version = "0.17.3"
 
 	// Core
 	coordinatorDelayMax  time.Duration = 100 * time.Millisecond
 	coordinatorDelayStep time.Duration = 10 * time.Millisecond
 
 	// Reader
-	readerBufferSize = 64 * 1024
+	readerBufferSize       = 64 * 1024
+	readerPollIntervalMin  = 10 * time.Millisecond
+	readerPollIntervalStep = 5 * time.Millisecond
+	readerPollIntervalMax  = 50 * time.Millisecond
 
 	// Terminal
 	initialDelay    = 20 * time.Millisecond
@@ -47,6 +51,18 @@ const (
 	defaultJumpLabels string = "asdfghjklqwertyuiopzxcvbnm1234567890ASDFGHJKLQWERTYUIOPZXCVBNM`~;:,<.>/?'\"!@#$%^&*()[{]}-_=+"
 )
 
+var defaultCommand string
+
+func init() {
+	if !util.IsWindows() {
+		defaultCommand = `set -o pipefail; command find -L . -mindepth 1 \( -path '*/\.*' -o -fstype 'sysfs' -o -fstype 'devfs' -o -fstype 'devtmpfs' -o -fstype 'proc' \) -prune -o -type f -print -o -type l -print 2> /dev/null | cut -b3-`
+	} else if os.Getenv("TERM") == "cygwin" {
+		defaultCommand = `sh -c "command find -L . -mindepth 1 -path '*/\.*' -prune -o -type f -print -o -type l -print 2> /dev/null | cut -b3-"`
+	} else {
+		defaultCommand = `for /r %P in (*) do @(set "_curfile=%P" & set "_curfile=!_curfile:%__CD__%=!" & echo !_curfile!)`
+	}
+}
+
 // fzf events
 const (
 	EvtReadNew util.EventType = iota
@@ -55,7 +71,7 @@ const (
 	EvtSearchProgress
 	EvtSearchFin
 	EvtHeader
-	EvtClose
+	EvtReady
 )
 
 const (
